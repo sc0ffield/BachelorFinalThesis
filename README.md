@@ -65,36 +65,6 @@ This repository tracks the incremental development of that simulator.
    5. Imposing boundary conditions with `PetscDSAddBoundary`
    6. Time integration of the semi-discrete system
 
-   > **Handoff note — continuation from here.** Chapters 1–5 and the example
-   > programs `Programs/petsc01`–`petsc08` are in place and verified. Three
-   > directions are proposed for whoever continues the work, in order of impact;
-   > each reuses machinery that already exists in the repository:
-   >
-   > 1. **Solution-field figures.** Every figure in the current chapters shows a
-   >    *mesh* or a geometry — none shows a *computed* field. Add two or three
-   >    figures of the solver's output (e.g. the temperature field on the bolt of
-   >    `petsc08`, or the Fichera solution of `petsc07`), rendered from the VTU /
-   >    HDF5+XDMF export that `petsc07`/`petsc08` already produce. Highest impact
-   >    for the least effort: it lets the reader finally *see* what the simulator
-   >    computes.
-   > 2. **Spatial convergence study (code verification).** `petsc08/ex04`
-   >    validates the *temporal* order (backward Euler `O(Δt)`, Crank–Nicolson
-   >    `O(Δt²)`). Add its spatial companion: solve the same manufactured solution
-   >    on a sequence of refined meshes and report the `O(h^{p+1})` (L₂) and
-   >    `O(h^p)` (H₁) rates for P1/P2. This is the standard verification argument
-   >    and fits naturally in Chapter 8.
-   > 3. **Parallel scaling study.** The code is parallel and functionally checked
-   >    (serial == parallel), but its *scalability* is never measured. Add a
-   >    strong-scaling table (wall time vs. number of MPI ranks for a fixed
-   >    problem), with the large runs on MareNostrum 5; this closes the central
-   >    claim of the thesis title and belongs with Chapter 7/8.
-   >
-   > Optional, smaller items: a steady *nonlinear* example (SNES) to match the
-   > transient nonlinear `petsc08/ex05`; a vector-valued or coupled problem
-   > (elasticity/Stokes) to show the `PetscFE` framework generalises beyond the
-   > scalar case; a lightweight `make check` per folder; and a note on
-   > advection stabilisation (SUPG) at high Péclet number as a stated limitation.
-
 6. **Problem Specification with Lua**
    1. Design of the Lua specification language
    2. Time-dependent coefficients and source terms in Lua
