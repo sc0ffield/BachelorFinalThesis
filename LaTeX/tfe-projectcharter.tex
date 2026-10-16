@@ -1,0 +1,208 @@
+\documentclass[GREVA,english,openany]{tfe-eseiaat}
+
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric,shapes.symbols,positioning,calc}
+
+\title{Study and Implementation of a Three-Dimensional Numerical Simulator Based on the Finite Element Method in Parallel Computing Environments}
+
+\thisdocument{Project Charter}
+\author{Marina-Liao Colom Escolá}
+\email{marina-liao.colom@estudiantat.upc.edu}
+\tutor{Rafel Amer Ramon}
+
+\begin{document}
+
+\chapter{Object}
+
+The object of this project is the study and implementation of a numerical
+simulator that solves boundary value problems posed on three-dimensional
+domains and discretised with the finite element method, and that is able to
+run in parallel on distributed-memory architectures.
+
+Concretely, the simulator addresses the linear advection--diffusion--reaction
+equation, both in its steady (elliptic) form
+\begin{equation}
+    -\nabla\cdot(a\,\nabla u) + b\cdot\nabla u + c\,u = f
+    \qquad \text{in } \Omega \subset \mathbb{R}^{3},
+    \label{eq:steady}
+\end{equation}
+and in its time-dependent (parabolic) form
+\begin{equation}
+    \frac{\partial u}{\partial t}
+    -\nabla\cdot(a\,\nabla u) + b\cdot\nabla u + c\,u = f
+    \qquad \text{in } \Omega \times (0, T],
+    \label{eq:transient}
+\end{equation}
+where the diffusion coefficient $a$, the advection field $b$, the
+reaction coefficient $c$ and the source term $f$ may all depend on the point
+$(x, y, z)$, and equation~\eqref{eq:steady} is closed with Dirichlet, Neumann
+or Robin boundary conditions on the different parts of the boundary
+$\partial\Omega$.
+
+The implementation is built on top of PETSc, the \emph{Portable, Extensible
+Toolkit for Scientific Computation} \cite{petsc-user-ref}, which provides the
+distributed data structures and parallel solvers on which the simulator
+relies. Unstructured tetrahedral meshes of the three-dimensional domains are
+generated externally with Gmsh \cite{gmsh-manual}, and the definition of each
+problem ---its coefficients, source terms and boundary conditions--- is
+supplied at run time through an embedded Lua scripting layer, so that a new
+problem can be solved without recompiling the code.
+
+\begin{figure}[!ht]
+\begin{center}
+\includegraphics[width=0.8\textwidth]{meshes/torus-int}
+\end{center}
+\caption{Unstructured tetrahedral mesh of a solid torus.}
+\label{fig:mesh3d}
+\end{figure}
+
+This work also builds upon, and extends to three dimensions and to parallel
+execution, an earlier two-dimensional finite element solver developed within
+the same line of work by Gómez~\cite{gomez2019fem}.
+
+\chapter{Scope}
+
+The scope of the project comprises the following tasks:
+
+\begin{itemize}
+    \item The mathematical formulation of the steady and time-dependent
+    advection--diffusion--reaction problems in three dimensions, including
+    their weak (variational) form and the treatment of Dirichlet, Neumann and
+    Robin boundary conditions.
+
+    \item The finite element discretisation of these problems on unstructured
+    tetrahedral meshes, using Lagrange elements, and the assembly of the
+    resulting discrete residual and Jacobian.
+
+    \item The import and parallel distribution of three-dimensional meshes
+    generated with Gmsh, together with the identification of the different
+    parts of the boundary to which different boundary conditions are applied.
+
+    \item The implementation of the simulator in the C language on top of
+    PETSc, using its \texttt{DMPlex} mesh abstraction, its \texttt{PetscFE}
+    finite element support, and its \texttt{KSP}, \texttt{SNES} and
+    \texttt{TS} solver frameworks.
+
+    \item The design of a specification layer, based on the Lua language, that
+    lets the user describe a problem ---coefficients, source terms and the
+    type and data of each boundary condition--- without modifying or
+    recompiling the C code.
+
+    \item The validation of the simulator against problems with a known
+    analytical solution and against reference solutions computed with the
+    FreeFEM package~\cite{freefem-manual} on the same geometries, together with
+    the assessment of its parallel behaviour by comparing sequential and
+    parallel executions.
+\end{itemize}
+
+\section*{Out of Scope}
+
+The following aspects are explicitly considered outside the scope of this project:
+
+\begin{itemize}
+    \item The generation of three-dimensional tetrahedral computational grids themselves is delegated externally to Gmsh.
+    \item The study and implementation of nonlinear partial differential equations beyond the linear model equations.
+    \item Execution on graphics processing units (GPUs) or other hardware acceleration platforms.
+    \item Automatic or dynamic refinement techniques during the simulation process.
+    \item Physical laboratory experiments or experimental testing.
+\end{itemize}
+
+\chapter{Requirements}
+
+The simulator is subject to the following basic requirements:
+\begin{itemize}
+    \item It must solve the steady and time-dependent
+    advection--diffusion--reaction equations on three-dimensional
+    unstructured tetrahedral meshes.
+
+    \item It must support Dirichlet, Neumann and Robin boundary conditions,
+    and must allow different conditions to be imposed on different parts of the
+    boundary of the same domain.
+
+    \item The type of boundary condition applied to each part of the boundary,
+    as well as all the coefficients and source terms of the problem, must be
+    configurable at run time, without recompiling the code.
+
+    \item It must run correctly in parallel on distributed-memory machines
+    using the Message Passing Interface (MPI), and produce results that are
+    independent of the number of processes used.
+
+    \item It must rely exclusively on free and open-source software (PETSc,
+    an MPI implementation, Gmsh and Lua), so that it is portable and
+    reproducible.
+
+    \item It must write its results in a format that can be read by standard
+    scientific visualisation tools, so that the computed solution can be
+    inspected and post-processed with, for example, ParaView
+    \cite{paraview-guide}.
+\end{itemize}
+\clearpage
+\chapter{Justification}
+
+Three of the reasons that motivate this project deserve to be highlighted.
+
+First, most problems of engineering interest are genuinely
+three-dimensional. Two-dimensional models are often convenient
+simplifications, but they cannot capture geometric features such as the
+cooling channel of a heat sink or the true shape of a mechanical part.
+Extending a finite element solver to three dimensions, and doing so in a way
+that scales to realistic problem sizes, is therefore a natural and valuable
+step.
+
+Second, the size of three-dimensional problems makes parallel computing
+essential. A modern open-source stack ---with PETSc \cite{petsc-user-ref} at
+its core--- makes it possible to build scalable parallel solvers without
+reimplementing the underlying linear algebra, mesh management or Krylov
+methods \cite{saad2003iterative} from scratch, and this project takes
+advantage of exactly that infrastructure.
+
+Third, separating the description of a problem from the code that solves it
+
+has a clear practical value. By expressing the coefficients, source terms and
+
+boundary conditions in a small Lua specification, the same compiled simulator
+
+can be applied to many different problems, which makes it a far more useful
+
+tool, both in an engineering and in an educational setting.
+
+\chapter{Schedule}
+
+The project is structured into sequential and parallel tasks designed to fulfill the requirements and scope of the 3D finite element numerical simulator. Table~\ref{tab:schedule} details the task identification, dependencies, and descriptions.
+
+\begin{table}[htbp]
+\centering
+\caption{Project Schedule}
+\label{tab:schedule}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{|c|l|c|p{8cm}|}
+\hline
+\textbf{Task Code} & \textbf{Identification} & \textbf{Dependencies} & \textbf{Description} \\ \hline
+\textbf{A} & Project Charter & — & Definition of the project scope, requirements, object, and schedule. \\ \hline
+\textbf{B} & Mathematical Foundations Study & — & Study of the 3D boundary value problem, weak formulation, and finite element discretisation on tetrahedra. \\ \hline
+\textbf{C} & PETSc \& Infrastructure Setup & B & Initial implementation of distributed data structures (\texttt{Vec}, \texttt{Mat}, \texttt{KSP}) and setup of PETSc environment. \\ \hline
+\textbf{D} & 3D Domain \& Gmsh Integration & C & Implementation of the mesh import pipeline using Gmsh (\texttt{DMPlex}), parallel mesh distribution (\texttt{METIS}/\texttt{PT-Scotch}), and boundary tagging. \\ \hline
+\textbf{E} & Lua Specification Layer & C & Implementation of the embedded Lua scripting interpreter to configure problem data and boundary conditions dynamically. \\ \hline
+\textbf{F} & FEM Operator Assembly & D, E & Discretisation and assembly of steady and time-dependent residual and Jacobian terms using \texttt{PetscFE} and \texttt{PetscDS}. \\ \hline
+\textbf{G} & Linear \& Transient Solver Integration & F & Integration of Krylov subspace methods, multigrid preconditioning (\texttt{gamg}), and \texttt{TS} time-marching schemes (Euler, Crank-Nicolson). \\ \hline
+\textbf{H} & Code Verification via MMS \& Shell & G & Code verification using the Method of Manufactured Solutions and the exact analytical solution of the spherical shell. \\ \hline
+\textbf{I} & Numerical Validation \& Cross-Validation & H & Numerical validation against reference solutions computed with FreeFEM on re-entrant corner domains (Fichera). \\ \hline
+\textbf{J} & Mesh Refinement \& Parallel Scaling Study & I & Performance evaluation including uniform/adaptive mesh refinement (\texttt{Mmg}/\texttt{ParMmg}) and strong parallel scaling analysis. \\ \hline
+\textbf{K} & Post-processing \& Visualization & G & Exporting results to \texttt{.vtu} and HDF5 formats and generating 3D renders and animations using ParaView. \\ \hline
+\textbf{L} & Economic Budget \& Impact Analysis & J & Estimation of computational and personal costs, including environmental/social considerations. \\ \hline
+\textbf{M} & Final Report Writing & — & Documentation of the full thesis report, mathematical formulation, code listings, and results. \\ \hline
+\textbf{N} & Oral Defense Preparation & M & Preparation of presentation slides and materials for the final thesis defense. \\ \hline
+\end{tabular}%
+}
+
+\end{table}
+\begin{figure}[!ht]
+
+\begin{center}
+\includegraphics[width=1\textwidth]{figures/Grantt.png}
+\end{center}
+\caption{Project Gantt Chart (Source: Created by author)}
+\label{fig:grantt}
+\end{figure}
+
+\end{document}
