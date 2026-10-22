@@ -15,6 +15,10 @@ TARGETS = bin/ex01 bin/ex02 bin/ex03 bin/ex04 bin/ex05 bin/ex06
 
 all: $(TARGETS)
 
+bin/%: %.c
+	@mkdir -p bin
+	$(CC) $(CCFLAGS) -o $@ $< $(LIBRARIES) $(LIBS)
+
 .PHONY: check
 check:
 	@command -v $(CC) >/dev/null 2>&1 || { echo "check: $(CC) not found"; exit 1; }
@@ -29,10 +33,6 @@ check:
 		python3 -c 'import ast,sys; ast.parse(open(sys.argv[1]).read())' $$py || exit 1; \
 	done
 	@echo "check: OK"
-
-bin/%: %.c
-	@mkdir -p bin
-	$(CC) $(CCFLAGS) -o $@ $< $(LIBRARIES) $(LIBS)
 
 clean:
 	rm -f $(TARGETS)
