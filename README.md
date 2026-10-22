@@ -27,7 +27,7 @@ distributed data structures (`Vec`, `Mat`, `DMPlex`) and solver frameworks
 
 This repository tracks the incremental development of that simulator.
 
-## Proposed table of contents
+## Table of contents
 
 1. **Preface**
    1. Abstract
